@@ -1,22 +1,13 @@
 <template>
-  <Page>
+  <Page actionBarHidden="true">
     <StackLayout class="root">
-      <FlexboxLayout
-        class="top"
-        flexDirection="column"
-        alignItems="center"
-      >
-        <Label class="title" :text="title" />
-        <Label
-            textWrap="true"
-            textAlignment="center"
-            class="description"
-            :text="description"
-        />
+      <FlexboxLayout class="top" flexDirection="column" alignItems="center">
+        <Label class="title" :text="title"/>
+        <Label textWrap="true" textAlignment="center" class="description" :text="description"/>
       </FlexboxLayout>
       <FlexboxLayout class="bottom" flexDirection="column">
         <FlexboxLayout flexDirection="column">
-          <FlexboxLayout class="buttonGroup">
+          <FlexboxLayout>
             <button @tap="onExchangeButtonTap" class="exchangeButton">
               <FormattedString>
                 <Span :text="selectedExchange" class="exchange"/>
@@ -25,38 +16,51 @@
             </button>
             <FlexboxLayout class="currencyButton" @tap="onCurrencyButtonTap">
               <Label text=" ▼" class="exchange"/>
-              <Image class="icon" src="~/images/euro.png" stretch="aspectFit" />
-              <Image class="icon" src="~/images/euro.png" stretch="aspectFit" />
+              <Image class="icon" src="~/images/euro.png" stretch="aspectFit"/>
+              <Image class="icon" src="~/images/euro.png" stretch="aspectFit"/>
             </FlexboxLayout>
           </FlexboxLayout>
-          <Label class="price" :text="price" />
-          <Label class="change" :text="change" />
+          <ListPicker
+            :hidden="!showExchangePicker"
+            :items="exchanges"
+            :selectedIndex="selectedExchangeIndex"
+            @selectedIndexChange="selectedIndexChanged"/>
+          <Label class="price" :text="price"/>
+          <Label class="change" :text="change"/>
         </FlexboxLayout>
-        <ListPicker
-          :hidden="!showExchangePicker"
-          :items="exchanges"
-          :selectedIndex="selectedExchangeIndex"
-          @selectedIndexChange="selectedIndexChanged"
-        />
+        <RadCartesianChart class="chart" ref="chart">
+          <LinearAxis ref="haxis" v-tkCartesianHorizontalAxis hidden="true"/>
+          <LinearAxis v-tkCartesianVerticalAxis hidden="true"/>
+          <AreaSeries
+            :items="items"
+            valueProperty="value"
+            categoryProperty="date"
+            v-tkCartesianSeries
+          />
+        </RadCartesianChart>
       </FlexboxLayout>
     </StackLayout>
   </Page>
 </template>
 
 
-
 <script lang="ts">
 import Vue from "nativescript-vue";
+import RadChart from 'nativescript-ui-chart/vue';
 import { finHubApiClient } from "~/api";
-//import config from "@/chart/config.json";
-//import data from "@/chart/data.json"
+import { ObservableArray } from "@nativescript-community/observable/observablearray";
+import { View } from "@nativescript/core";
+import { title } from "process";
 
-/*
-<Page xmlns="http://schemas.nativescript.org/tns.xsd" xmlns:uc="@nativescript/ui-charts">
-<GridLayout>
-  <uc:UIChartsView id="chartView" loaded="chartViewLoaded" />
-</GridLayout>
-*/
+let index = 0;
+const now = (new Date()).getMilliseconds();
+const items = new ObservableArray(Array.from({ length: 100 }, () => {
+  const tmp = Math.random();
+  return {
+    value: Math.floor( (tmp > 0.5 ? tmp : tmp + 0.5)* 100) % 100,
+    date: index++
+  }
+}));
 
 export default Vue.extend({
   data() {
@@ -70,7 +74,7 @@ export default Vue.extend({
       selectedExchange: "",
       showExchangePicker: false,
       exchangeButtonArrow: " › ",
-      //chartView: undefined as any
+      items: items
     }
   },
   mounted() {
@@ -80,6 +84,11 @@ export default Vue.extend({
       this.exchanges = response
     })
     .catch(console.log)
+
+    const chart = this.$refs.haxis as Vue<View>
+    const axis = chart.nativeView as any
+    axis.hidden = false
+    axis.hidden = true
   },
   methods: {
     onExchangeButtonTap() {
@@ -96,14 +105,7 @@ export default Vue.extend({
       if (this.exchanges.length > event.value) {
         this.selectedExchange = this.exchanges[event.value]
       }
-    },
-    /*chartViewLoaded(args: any) {
-      this.chartView = args.object;
-      this.chartView.setOptions({
-        ...config,
-        data
-      });
-    }*/
+    }
   }
 });
 </script>
@@ -112,7 +114,6 @@ export default Vue.extend({
 @import '@nativescript/theme/scss/variables/blue';
 
 // Custom styles
-
 .fas {
   @include colorize($color: accent);
 }
@@ -123,6 +124,7 @@ export default Vue.extend({
   font-size: 20;
   font-weight: 600;
   text-align: center;
+  padding-top: 20;
 }
 .exchange {
   font-size: 18;
@@ -160,30 +162,41 @@ export default Vue.extend({
 .bottom {
   margin-left: 20;
   margin-right: 20;
-  padding-right: 20;
   padding-top: 10;
   background-color: rgba($color: #FFFFFF, $alpha: 0.5);
   border-radius: 16;
   margin-top: -70;
   margin-bottom: 20;
 }
-.buttonGroup {
-  
-}
 .exchangeButton {
   text-align: left;
   width: 60%;
   background-color: transparent;
+  border-width: 1;
+  border-color: transparent;
+  z-index: 0;
 }
 .currencyButton {
+  padding-right: 20;
 }
 .icon {
   width: 50;
   height: 50;
 }
 .root {
-  background-color: bisque;
+  background-color: white;
   height: 100%;
 }
+.grid {
+  width: 100%;
+}
 
+.chart {
+  width: 100%;
+  height: 300;
+  background-color: darkkhaki;
+}
+.area {
+  background-color: chartreuse;
+}
 </style>
